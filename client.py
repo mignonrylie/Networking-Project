@@ -4,7 +4,9 @@
 from core import *
 from threading import Thread
 
-connected = 0;
+#here's a comment
+
+connected = 0
 
 def commandConnect(argv):
 
