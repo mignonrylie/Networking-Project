@@ -7,16 +7,21 @@ from socket import socket, AF_INET, SOCK_STREAM
 from time import ctime
 from utils import *
 
+
+#file types that can be handled:
+#image: jpeg
+#video:
+#audio:
+
 #def prepareCommand() -> str:
 #converts the user-typed message into something that the sender() function can understand.
-
 def deleteFile(tokens) -> None:
     path = tokens[1]
     path = "client_dir/" + path
     try:
         os.remove(path)
     except FileNotFoundError:
-        raise #this lets the original menu function handle the error, but it breaks when called from sanitizeInput
+        raise #this lets the calling function also handle the error
 
 def sanitizeInput() -> str:
     raw = input()
@@ -35,6 +40,7 @@ def sanitizeInput() -> str:
     elif tokens[0] == "DOWNLOAD":
         if len(tokens) < 2:
             print("Please include the name of the file you wish to download.")
+            #send ":DOWNLOAD: filename"
 
     elif tokens[0] == "DELETE": #done
     #if it's a command that doesn't result in a message being sent, recursion is necessary to ensure that
@@ -89,7 +95,6 @@ def upload(conn: socket, filename: str) -> None:
     if message:
         send_msg(conn, pickle.dumps(message))
 
-
 def sender(conn: socket, home_dir: str) -> None:
     """Function that will be used in a thread to handle any outgoing messages to
        the provided socket connection.
@@ -109,6 +114,11 @@ def sender(conn: socket, home_dir: str) -> None:
             if command == ":UPLOAD:":
                 filename = message.split()[1]
                 upload(conn, f"{home_dir}/{filename}")
+            #elif command == ":DOWNLOAD:":
+            #    message = {
+            #        PACKET_HEADER: ":DOWNLOAD:",
+            #        PACKET_PAYLOAD: message.split[1]
+            #    }
             else:
                 message = {
                     PACKET_HEADER: ":MESSAGE:",
@@ -137,11 +147,16 @@ def handle_received_message(message: dict, home_dir: str) -> None:
             image = message[PACKET_PAYLOAD]["img"]
             image.save(f"{home_dir}/{filename}")
             print(f"[{ctime()}] Saved file '{filename}' to your directory!")
+        #elif message[PACKET_HEADER] == ":DOWNLOAD:":
+        #    if os.path.exists(f"{home_dir}/{PACKET_PAYLOAD}"):
+        #        upload(conn, f"PACKET_PAYLOAD")
+        #    pass
+            #if this message is recieved, the recipient needs to check if it has the file. if not, the server should ask
         else:
             print(f"{message[PACKET_PAYLOAD]}")
 
 
-def receiver(conn: socket, home_dir: str) -> None:
+def receiver(conn: socket, home_dir: str) -> None: #runs forever, called by both client and server
     """Function that will be used in a thread to handle any incoming messages from
        the provided socket connection.
 
