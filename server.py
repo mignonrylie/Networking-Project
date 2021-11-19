@@ -15,8 +15,10 @@ def main(argv) -> None:
     server_socket = socket(AF_INET, SOCK_STREAM)
     server_socket.bind((argv.host, argv.port))
 
-    # Wait to establish a connection with a client that tries to connect.
+    # Wait to establish a connection with a client that tries to connect.~
     server_socket.listen()
+    print('Socket is listening...')
+
     client_sock, client_addr = server_socket.accept()
     print(f"[{ctime()}] Connected to client {client_addr}.")
 
