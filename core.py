@@ -43,9 +43,11 @@ def sanitizeInput() -> str:
         else:
             return ":UPLOAD: " + tokens[1]
 
-    elif tokens[0] == "DOWNLOAD":
+    elif tokens[0] == "DOWNLOAD": #done
         if len(tokens) < 2:
             print("Please include the name of the file you wish to download.")
+        else:
+            return ":DOWNLOAD: " + tokens[1]
 
     elif tokens[0] == "DELETE": #done
     #if it's a command that doesn't result in a message being sent, recursion is necessary to ensure that
@@ -125,6 +127,17 @@ def upload(conn: socket, filename: str) -> None:
         except TypeError:
             send_msg(conn, dumps(message))
 
+def downloadReq(conn: socket, filename: str) -> None:
+    """Sends a basic download request with a filename
+    """
+    message = {
+        PACKET_HEADER: ":DOWNLOAD:",
+        PACKET_PAYLOAD: {
+            "filename": filename
+        }
+    }
+    if message:
+        send_msg(conn, pickle.dumps(message))
 
 def sender(conn: socket, home_dir: str) -> None:
     """Function that will be used in a thread to handle any outgoing messages to
@@ -145,6 +158,9 @@ def sender(conn: socket, home_dir: str) -> None:
             if command == ":UPLOAD:":
                 filename = message.split()[1]
                 upload(conn, f"{home_dir}\{filename}")
+            elif command == ":DOWNLOAD:":
+                filename = message.split()[1]
+                downloadReq(conn, filename)
             else:
                 message = {
                     PACKET_HEADER: ":MESSAGE:",
@@ -165,6 +181,8 @@ def handle_received_message(message: dict, home_dir: str) -> None:
         home_dir (str): Directory of this client/server's data (in case of uploading).
     """
     if message is not None:
+        #filehead = message[PACKET_HEADER]
+        #print(f"[{ctime()}] Message header '{filehead}' received!") #debug
         if message[PACKET_HEADER] == ":UPLOAD:":
             # (1) Get just the filename without the prefacing path.
             # (2) Get the PIL image object.
@@ -187,6 +205,26 @@ def handle_received_message(message: dict, home_dir: str) -> None:
                 #except:
             """
             print(f"[{ctime()}] Saved file '{filename}' to your directory!")
+        elif message[PACKET_HEADER] == ":DOWNLOAD:":
+            filename = message[PACKET_PAYLOAD]["filename"].split(os.sep)[-1]
+            fileSent = bool(0)
+
+            #Check if filename is on current directory
+            fileOnDir = os.path.exists(f"{home_dir}\{filename}")
+
+            #If file is on directory, send to Client 1, if not, check with Client 2
+            if (fileOnDir == True):
+                print(f"Sending '{filename}'...")
+                #Todo: Actually send file
+                fileSent = bool(1)
+            else:
+                print(f"File not found on server, reaching out to client two...")
+
+            #Conf message
+            if (fileSent == bool(1)):
+                print(f"[{ctime()}] Sent file '{filename}' to client!")
+            else:
+                print(f"[{ctime()}] Could not find '{filename}'!") 
         else:
             print(f"{message[PACKET_PAYLOAD]}")
 
