@@ -9,7 +9,8 @@ from utils import *
 
 
 #wave for handling .WAV audio files
-#  
+#queue for letting the different server processes talk to each other for download
+
 def deleteFile(tokens) -> None:
     path = tokens[1]
     path = "client_dir/" + path
