@@ -4,7 +4,11 @@
 from core import *
 from threading import Thread
 
+<<<<<<< HEAD
 #here's a comment 2
+=======
+#here's a comment test
+>>>>>>> 8221e391010338963e1720bc99cb4ed755c8bfbe
 
 connected = 0
 
