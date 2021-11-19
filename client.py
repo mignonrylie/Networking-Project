@@ -1,10 +1,10 @@
 #import sys
-#import traceback
+#import traceback 2
 
 from core import *
 from threading import Thread
 
-#here's a comment test
+#here's a comment test 2
 
 connected = 0
 
