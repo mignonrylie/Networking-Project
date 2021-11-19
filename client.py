@@ -16,7 +16,7 @@ def commandConnect(argv):
 	except ConnectionRefusedError:
 		print("Unable to connect.")
 	else:
-		connected = 1;
+		connected = 1
 
 		print("You now have access to the following commands:")
 		print("UPLOAD filename")
