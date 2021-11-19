@@ -159,12 +159,21 @@ def handle_received_message(message: dict, home_dir: str) -> None:
             print(f"[{ctime()}] Saved file '{filename}' to your directory!")
         elif message[PACKET_HEADER] == ":DOWNLOAD:":
             filename = message[PACKET_PAYLOAD]["filename"].split(os.sep)[-1]
-            filesent = bool(0)
+            fileSent = bool(0)
+
             #Check if filename is on current directory
+            fileOnDir = os.path.exists(f"{home_dir}\{filename}")
 
-            #Check if filename is on Client 2, if so, send
+            #If file is on directory, send to Client 1, if not, check with Client 2
+            if (fileOnDir == True):
+                print(f"Sending '{filename}'...")
+                #Todo: Actually send file
+                fileSent = bool(1)
+            else:
+                print(f"File not found on server, reaching out to client two...")
 
-            if (filesent == bool(1)):
+            #Conf message
+            if (fileSent == bool(1)):
                 print(f"[{ctime()}] Sent file '{filename}' to client!")
             else:
                 print(f"[{ctime()}] Could not find '{filename}'!") 
