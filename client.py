@@ -4,7 +4,7 @@
 from core import *
 from threading import Thread
 
-#here's a comment
+#here's a comment test
 
 connected = 0
 
