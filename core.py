@@ -1,11 +1,21 @@
 import argparse
 import os
 import pickle
+#import wave    get rifd of wave
+import scipy.io.wavfile
+import numpy
 
-from PIL import Image
+from dill import dumps, loads #are we allowed to use libraries that require installing?
+
+from PIL import Image, UnidentifiedImageError
 from socket import socket, AF_INET, SOCK_STREAM
 from time import ctime
 from utils import *
+
+
+
+#upload is currently broken. wave likely isn't necessary, as are dill, scipy, and numpy.
+#look into uploading by converting all files to byte streams with pickle
 
 
 #wave for handling .WAV audio files
@@ -72,7 +82,7 @@ def parse_args() -> argparse.Namespace:
     args.add_argument("-n", "--host", type=str, default="localhost")
     return args.parse_args()
 
-
+#detect unsupported files and give warning?
 def upload(conn: socket, filename: str) -> None:
     """Prepares a message to be sent with an IMAGE file attached to it.
 
@@ -80,16 +90,40 @@ def upload(conn: socket, filename: str) -> None:
         conn (socket): Socket to send message with image to.
         filename (str): Name of the file.
     """
-    img = Image.open(filename)
-    message = {
-        PACKET_HEADER: ":UPLOAD:",
-        PACKET_PAYLOAD: {
-            "filename": filename,
-            "img": img
+    
+    try:
+        #img = Image.open(filename)
+        img = open(filename, 'wb')
+        message = {
+            PACKET_HEADER: ":UPLOAD:",
+            PACKET_PAYLOAD: {
+                "filename": filename,
+                "img": img
+            }
         }
-    }
+    except UnidentifiedImageError:
+        #try:
+        #audio = wave.open(filename)
+        audio = scipy.io.wavfile.read(filename)
+        message = {
+            PACKET_HEADER: ":UPLOAD:",
+            PACKET_PAYLOAD: {
+                "filename": filename,
+                "audio": audio
+            }
+        }
+
+        #except:
+        #    pass
+
+        #print("exception handled")
+        #pass
+    #PIL.UnidentifiedImageError
     if message:
-        send_msg(conn, pickle.dumps(message))
+        try:
+            send_msg(conn, pickle.dumps(message))
+        except TypeError:
+            send_msg(conn, dumps(message))
 
 
 def sender(conn: socket, home_dir: str) -> None:
@@ -136,8 +170,22 @@ def handle_received_message(message: dict, home_dir: str) -> None:
             # (2) Get the PIL image object.
             # (3) Save the image to the device's directory.
             filename = message[PACKET_PAYLOAD]["filename"].split(os.sep)[-1]
-            image = message[PACKET_PAYLOAD]["img"]
-            image.save(f"{home_dir}\{filename}")
+
+            with open(f"{home_dir}\{filename}") as file:
+                file.write(message[PACKET_PAYLOAD]["img"])
+
+            """
+            try:
+                image = message[PACKET_PAYLOAD]["img"]
+                #image.save(f"{home_dir}\{filename}")
+                
+            except KeyError:
+                #try:
+                audio, rate = message[PACKET_PAYLOAD]["audio"]
+                scipy.io.wavfile.write(filename, numpy.array(rate), numpy.array(audio))
+                
+                #except:
+            """
             print(f"[{ctime()}] Saved file '{filename}' to your directory!")
         else:
             print(f"{message[PACKET_PAYLOAD]}")
