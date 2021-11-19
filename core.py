@@ -7,9 +7,9 @@ from socket import socket, AF_INET, SOCK_STREAM
 from time import ctime
 from utils import *
 
-#def prepareCommand() -> str:
-#converts the user-typed message into something that the sender() function can understand.
 
+#wave for handling .WAV audio files
+#  
 def deleteFile(tokens) -> None:
     path = tokens[1]
     path = "client_dir/" + path
