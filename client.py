@@ -1,10 +1,10 @@
 #import sys
-#import traceback
+#import traceback 2
 
 from core import *
 from threading import Thread
 
-#here's a comment test
+#here's a comment test 3
 
 connected = 0
 
@@ -16,7 +16,7 @@ def commandConnect(argv):
 	except ConnectionRefusedError:
 		print("Unable to connect.")
 	else:
-		connected = 1;
+		connected = 1
 
 		print("You now have access to the following commands:")
 		print("UPLOAD filename")

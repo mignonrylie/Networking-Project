@@ -7,8 +7,9 @@ from socket import socket, AF_INET, SOCK_STREAM
 from time import ctime
 from utils import *
 
-#def prepareCommand() -> str:
-#converts the user-typed message into something that the sender() function can understand.
+
+#wave for handling .WAV audio files
+#queue for letting the different server processes talk to each other for download
 
 def deleteFile(tokens) -> None:
     path = tokens[1]
@@ -51,6 +52,7 @@ def sanitizeInput() -> str:
 
 
     elif tokens[0] == "DIR": #done
+        #enable for server directory
         print(os.listdir('client_dir'))
         return sanitizeInput()
 
@@ -108,7 +110,7 @@ def sender(conn: socket, home_dir: str) -> None:
                 pass
             if command == ":UPLOAD:":
                 filename = message.split()[1]
-                upload(conn, f"{home_dir}/{filename}")
+                upload(conn, f"{home_dir}\{filename}")
             else:
                 message = {
                     PACKET_HEADER: ":MESSAGE:",
@@ -135,7 +137,7 @@ def handle_received_message(message: dict, home_dir: str) -> None:
             # (3) Save the image to the device's directory.
             filename = message[PACKET_PAYLOAD]["filename"].split(os.sep)[-1]
             image = message[PACKET_PAYLOAD]["img"]
-            image.save(f"{home_dir}/{filename}")
+            image.save(f"{home_dir}\{filename}")
             print(f"[{ctime()}] Saved file '{filename}' to your directory!")
         else:
             print(f"{message[PACKET_PAYLOAD]}")
