@@ -51,6 +51,7 @@ def sanitizeInput() -> str:
 
 
     elif tokens[0] == "DIR": #done
+        #enable for server directory
         print(os.listdir('client_dir'))
         return sanitizeInput()
 
