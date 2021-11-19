@@ -147,8 +147,8 @@ def handle_received_message(message: dict, home_dir: str) -> None:
         home_dir (str): Directory of this client/server's data (in case of uploading).
     """
     if message is not None:
-        filehead = message[PACKET_HEADER]
-        print(f"[{ctime()}] Message header '{filehead}' received!") #debug
+        #filehead = message[PACKET_HEADER]
+        #print(f"[{ctime()}] Message header '{filehead}' received!") #debug
         if message[PACKET_HEADER] == ":UPLOAD:":
             # (1) Get just the filename without the prefacing path.
             # (2) Get the PIL image object.
