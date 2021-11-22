@@ -1,11 +1,21 @@
 import argparse
 import os
 import pickle
+#import wave    get rifd of wave
+import scipy.io.wavfile
+import numpy
 
-from PIL import Image
+from dill import dumps, loads #are we allowed to use libraries that require installing?
+
+from PIL import Image, UnidentifiedImageError
 from socket import socket, AF_INET, SOCK_STREAM
 from time import ctime
 from utils import *
+
+
+
+#upload is currently broken. wave likely isn't necessary, as are dill, scipy, and numpy.
+#look into uploading by converting all files to byte streams with pickle
 
 
 #wave for handling .WAV audio files
@@ -33,9 +43,11 @@ def sanitizeInput() -> str:
         else:
             return ":UPLOAD: " + tokens[1]
 
-    elif tokens[0] == "DOWNLOAD":
+    elif tokens[0] == "DOWNLOAD": #done
         if len(tokens) < 2:
             print("Please include the name of the file you wish to download.")
+        else:
+            return ":DOWNLOAD: " + tokens[1]
 
     elif tokens[0] == "DELETE": #done
     #if it's a command that doesn't result in a message being sent, recursion is necessary to ensure that
@@ -72,7 +84,7 @@ def parse_args() -> argparse.Namespace:
     args.add_argument("-n", "--host", type=str, default="localhost")
     return args.parse_args()
 
-
+#detect unsupported files and give warning?
 def upload(conn: socket, filename: str) -> None:
     """Prepares a message to be sent with an IMAGE file attached to it.
 
@@ -80,17 +92,52 @@ def upload(conn: socket, filename: str) -> None:
         conn (socket): Socket to send message with image to.
         filename (str): Name of the file.
     """
-    img = Image.open(filename)
+    
+    try:
+        #img = Image.open(filename)
+        img = open(filename, 'wb')
+        message = {
+            PACKET_HEADER: ":UPLOAD:",
+            PACKET_PAYLOAD: {
+                "filename": filename,
+                "img": img
+            }
+        }
+    except UnidentifiedImageError:
+        #try:
+        #audio = wave.open(filename)
+        audio = scipy.io.wavfile.read(filename)
+        message = {
+            PACKET_HEADER: ":UPLOAD:",
+            PACKET_PAYLOAD: {
+                "filename": filename,
+                "audio": audio
+            }
+        }
+
+        #except:
+        #    pass
+
+        #print("exception handled")
+        #pass
+    #PIL.UnidentifiedImageError
+    if message:
+        try:
+            send_msg(conn, pickle.dumps(message))
+        except TypeError:
+            send_msg(conn, dumps(message))
+
+def downloadReq(conn: socket, filename: str) -> None:
+    """Sends a basic download request with a filename
+    """
     message = {
-        PACKET_HEADER: ":UPLOAD:",
+        PACKET_HEADER: ":DOWNLOAD:",
         PACKET_PAYLOAD: {
-            "filename": filename,
-            "img": img
+            "filename": filename
         }
     }
     if message:
         send_msg(conn, pickle.dumps(message))
-
 
 def sender(conn: socket, home_dir: str) -> None:
     """Function that will be used in a thread to handle any outgoing messages to
@@ -111,6 +158,9 @@ def sender(conn: socket, home_dir: str) -> None:
             if command == ":UPLOAD:":
                 filename = message.split()[1]
                 upload(conn, f"{home_dir}\{filename}")
+            elif command == ":DOWNLOAD:":
+                filename = message.split()[1]
+                downloadReq(conn, filename)
             else:
                 message = {
                     PACKET_HEADER: ":MESSAGE:",
@@ -131,14 +181,50 @@ def handle_received_message(message: dict, home_dir: str) -> None:
         home_dir (str): Directory of this client/server's data (in case of uploading).
     """
     if message is not None:
+        #filehead = message[PACKET_HEADER]
+        #print(f"[{ctime()}] Message header '{filehead}' received!") #debug
         if message[PACKET_HEADER] == ":UPLOAD:":
             # (1) Get just the filename without the prefacing path.
             # (2) Get the PIL image object.
             # (3) Save the image to the device's directory.
             filename = message[PACKET_PAYLOAD]["filename"].split(os.sep)[-1]
-            image = message[PACKET_PAYLOAD]["img"]
-            image.save(f"{home_dir}\{filename}")
+
+            with open(f"{home_dir}\{filename}") as file:
+                file.write(message[PACKET_PAYLOAD]["img"])
+
+            """
+            try:
+                image = message[PACKET_PAYLOAD]["img"]
+                #image.save(f"{home_dir}\{filename}")
+                
+            except KeyError:
+                #try:
+                audio, rate = message[PACKET_PAYLOAD]["audio"]
+                scipy.io.wavfile.write(filename, numpy.array(rate), numpy.array(audio))
+                
+                #except:
+            """
             print(f"[{ctime()}] Saved file '{filename}' to your directory!")
+        elif message[PACKET_HEADER] == ":DOWNLOAD:":
+            filename = message[PACKET_PAYLOAD]["filename"].split(os.sep)[-1]
+            fileSent = bool(0)
+
+            #Check if filename is on current directory
+            fileOnDir = os.path.exists(f"{home_dir}\{filename}")
+
+            #If file is on directory, send to Client 1, if not, check with Client 2
+            if (fileOnDir == True):
+                print(f"Sending '{filename}'...")
+                #Todo: Actually send file
+                fileSent = bool(1)
+            else:
+                print(f"File not found on server, reaching out to client two...")
+
+            #Conf message
+            if (fileSent == bool(1)):
+                print(f"[{ctime()}] Sent file '{filename}' to client!")
+            else:
+                print(f"[{ctime()}] Could not find '{filename}'!") 
         else:
             print(f"{message[PACKET_PAYLOAD]}")
 
