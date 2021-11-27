@@ -102,7 +102,8 @@ def queueMonitor(q, task1, task2) -> None:
 
                     #the ID decides which task queue the command will go into.
 
-def threader(host, port, q, task) -> None:
+#potentially q, task
+def threader(host, port) -> None:
     #id = get_ident()
     #q.put(id)
 
