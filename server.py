@@ -1,5 +1,24 @@
+#WHERE TO PICK UP WORKING
+#still trying to get the download handshake thing to work
+#i think all the correct steps are happening, but not in the correct threads
+#gonna have to tag each queue message with an ID
+#however for some reason using getpid() returns the same thing for two different threads....
+#i don't know why the hell that's happening
+#but you can get around this by finding the thread ID of each of the original two threads
+#(they already print them)
+#and passing them to their two children each. 
+#pretty ugly solution but it's all i can come up with.
+
+
+
+
+
+
+
+
+
 from core import *
-from threading import Thread, get_ident
+from threading import Thread, get_ident, get_native_id
 
 '''
 Server with a working upload feature and back-to-back texting.
@@ -26,19 +45,19 @@ def main(argv) -> None:
 
     #threader(argv.host, 8081)
     #threader(argv.host, 8082)
-    #q = Queue() #shared by all threads to send messages around
+    q = Queue() #shared by all threads to send messages around
     #task1 = Queue() #used by the queue monitor to tell server thread 1 what to do
     #task2 = Queue() #used by the queue monitor to tell server thread 2 what to do
 
     #potentially with args q, task1/2
-    port8081 = Thread(target=threader, args=(argv.host, 8081))
-    port8082 = Thread(target=threader, args=(argv.host, 8082))
+    port8081 = Thread(target=threader, args=(argv.host, 8081, q))
+    port8082 = Thread(target=threader, args=(argv.host, 8082, q))
     #handler = Thread(target=queueMonitor, args=(q, task1, task2))
     port8081.start()
     port8082.start()
     #handler.start()
-    #port8081.join()
-    #port8082.join()
+    port8081.join()
+    port8082.join()
 
 
 
@@ -103,11 +122,14 @@ def queueMonitor(q, task1, task2) -> None:
                     #the ID decides which task queue the command will go into.
 
 #potentially q, task
-def threader(host, port) -> None:
-    #id = get_ident()
+def threader(host, port, q) -> None:
+    id = get_ident()
     #q.put(id)
 
+
+
     #task.put(id)
+
 
     server_socket = socket(AF_INET, SOCK_STREAM)
     server_socket.bind((host, port))
@@ -120,14 +142,14 @@ def threader(host, port) -> None:
 
     
     #both potentially with q, id, task
-    sender_thread = Thread(target=sender, args=(client_sock, "server_dir"))
-    reciever_thread = Thread(target=receiver, args=(client_sock, "server_dir"))
+    sender_thread = Thread(target=serverSender, args=(client_sock, "server_dir", q, id))
+    reciever_thread = Thread(target=receiver, args=(client_sock, "server_dir", q, id))
 
     sender_thread.start()
     reciever_thread.start()
     
-    sender_thread.join()
-    reciever_thread.join()
+    #sender_thread.join()
+    #reciever_thread.join()
 
 
 
