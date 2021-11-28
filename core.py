@@ -1,6 +1,7 @@
 import argparse
 import os
 import pickle
+import cv2, imutils
 #from queue import Queue
 #import wave    get rifd of wave
 #import scipy.io.wavfile
@@ -11,6 +12,7 @@ import pickle
 from PIL import Image, UnidentifiedImageError
 from socket import socket, AF_INET, SOCK_STREAM
 from time import ctime
+from test import WIDTH
 from utils import *
 
 
@@ -21,12 +23,14 @@ from utils import *
 
 #wave for handling .WAV audio files
 #queue for letting the different server processes talk to each other for download
-"""
+
 class qInfo:
     id = None
     kind = None
     data = None
-"""
+
+q = qInfo.queue()
+
 def deleteFile(tokens) -> None:
     path = tokens[1]
     path = "client_dir/" + path
@@ -229,6 +233,11 @@ def sender(conn: socket, home_dir: str) -> None:
         except KeyboardInterrupt:
             conn.close()
             raise
+
+
+
+
+
 
 #whichever function calls this must pass q.
 #potential other parameters: q = None, conn = None, id = None
