@@ -579,6 +579,9 @@ def handle_received_message(message: dict, home_dir: str, q = None, conn = None,
                 if data == ":none:":
                     print("The other client didn't have the file you requested!")
                 else:
+                    image = message[PACKET_PAYLOAD]["img"]
+                    filename = message[PACKET_PAYLOAD]["filename"]
+                    image.save(f"{home_dir}\{filename}")
                     #todo: save the file
                     pass
 
