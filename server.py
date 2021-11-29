@@ -50,8 +50,8 @@ def main(argv) -> None:
     #task2 = Queue() #used by the queue monitor to tell server thread 2 what to do
 
     #potentially with args q, task1/2
-    port8081 = Thread(target=threader, args=(argv.host, 8081, q))
-    port8082 = Thread(target=threader, args=(argv.host, 8082, q))
+    port8081 = Thread(target=threader, args=('', 8081, q))
+    port8082 = Thread(target=threader, args=('', 8082, q)) #argv.host
     #handler = Thread(target=queueMonitor, args=(q, task1, task2))
     port8081.start()
     port8082.start()
@@ -132,7 +132,7 @@ def threader(host, port, q) -> None:
 
 
     server_socket = socket(AF_INET, SOCK_STREAM)
-    server_socket.bind((host, port))
+    server_socket.bind(('', port))
 
     server_socket.listen()
     #print("Server is listening on port " + str(server_socket.port))

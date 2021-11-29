@@ -171,23 +171,13 @@ def upload(conn: socket, filename: str) -> None:
             }
         }
     except UnidentifiedImageError:
-        #try:
-        #audio = wave.open(filename)
-        #audio = scipy.io.wavfile.read(filename)
-        #message = {
-        #    PACKET_HEADER: ":UPLOAD:",
-        #    PACKET_PAYLOAD: {
-        #        "filename": filename,
-        #        "audio": audio
-        #    }
-        #}
-
-        #except:
-        #    pass
-
-        #print("exception handled")
-        print("UnidentifiedImageError")
-    #PIL.UnidentifiedImageError
+        try:
+            txt = open(filename)
+            message = {
+                PACKET_HEADER: ":"
+            }
+        except:
+            pass
     if message:
         try:
             send_msg(conn, pickle.dumps(message))
@@ -340,14 +330,16 @@ def serverSender(conn: socket, home_dir: str, q = None, id = None) -> None:
                 reqid = req.id
                 data = req.data
                 print("I received a req " + kind)
-                print("the data is " + data)
+                #print("the data is " + data)
                 print("the id is " + str(reqid) + " and my id is " + str(id))
 
                 
                 #lock = threading.RLock
                 #con = threading.Condition(lock)
                 lock = threading.Lock()
-                lock.acquire()
+                #lock.acquire()
+                
+                
                 if reqid == id:
                     q.put(req)
                     #threading.Condition.wait(lock)
@@ -379,11 +371,12 @@ def serverSender(conn: socket, home_dir: str, q = None, id = None) -> None:
                         }
                         if message:
                             send_msg(conn, pickle.dumps(message))
-                            print(PACKET_PAYLOAD)
+                            #print(PACKET_PAYLOAD)
                             #release()
                     #threading.notify_all()
                     #con.notify_all()
-                    lock.release()
+                    if lock.locked():
+                        lock.release()
                 """
         try:
 
@@ -532,7 +525,17 @@ def handle_received_message(message: dict, home_dir: str, q = None, conn = None,
 
                 #todo: fix this
                 #upload won't know how to make sure to tag it with a :RESPONSE: header
-                upload(conn, f"{home_dir}\{filename}")
+                #upload(conn, f"{home_dir}\{filename}")
+                img = Image.open(f"{home_dir}\{filename}")
+                message = {
+                    PACKET_HEADER: ":RESPONSE:",
+                    PACKET_PAYLOAD: {
+                        "filename": filename,
+                        "img": img
+                    }
+                }
+                send_msg(conn, pickle.dumps(message))
+        
             else:
                 print("I don't have this file.")
                 #send message with response header with empty data
