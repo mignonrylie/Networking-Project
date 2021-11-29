@@ -339,15 +339,16 @@ def serverSender(conn: socket, home_dir: str, q = None, id = None) -> None:
                 lock = threading.Lock()
                 #lock.acquire()
                 
-                
                 if reqid == id:
+                    print("the IDs are the same")
                     q.put(req)
                     #threading.Condition.wait(lock)
                     #con.wait()
                     #lock = threading.Lock
+                    print(str(id) + "is locking itself.")
                     lock.acquire()
                 else:
-                    
+                    print("the IDs are different, so I'm going to process this.")
 
                 #if the request's id matches the current ID, just put it back in the queue.
                 #only do anything if it came from the other thread.
@@ -376,7 +377,9 @@ def serverSender(conn: socket, home_dir: str, q = None, id = None) -> None:
                     #threading.notify_all()
                     #con.notify_all()
                     if lock.locked():
+                        print("the other thread was locked, so I unlocked it")
                         lock.release()
+                        #lock.release()
                 """
         try:
 
