@@ -1,10 +1,5 @@
-#import sys
-#import traceback 2
-
 from core import *
 from threading import Thread
-
-#here's a comment test 3
 
 connected = 0
 
@@ -37,8 +32,6 @@ def commandConnect(argv):
 		sender_thread.join()
 		receiver_thread.join()
 
-
-
 def processMenu(opt, argv):
 	tokens = opt.split()
 
@@ -47,7 +40,6 @@ def processMenu(opt, argv):
 		if len(tokens) > 1:
 			#get ip
 			argv.host = tokens[1]
-			#handle something? it should be treated as a string no matter what, i think.
 
 			if len(tokens) > 2:
 				#get port
@@ -74,15 +66,6 @@ def processMenu(opt, argv):
 				deleteFile(tokens)
 			except FileNotFoundError:
 				print("File not found.")
-			"""
-		else:
-			path = tokens[1]
-			path = "client_dir/" + path
-			#handle file names with spaces in them
-			try:
-				os.remove(path)
-			except FileNotFoundError:
-				print("File not found.")"""
 
 	elif tokens[0] == "DIR":
 		print(os.listdir('client_dir'))
