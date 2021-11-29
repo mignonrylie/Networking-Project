@@ -1,18 +1,20 @@
+
 import argparse
 import os
 import pickle
-import cv2, imutils
-#from queue import Queue
+from queue import Queue
 #import wave    get rifd of wave
 #import scipy.io.wavfile
 #import numpy
+
+import threading
+from threading import *
 
 #from dill import dumps, loads #are we allowed to use libraries that require installing?
 
 from PIL import Image, UnidentifiedImageError
 from socket import socket, AF_INET, SOCK_STREAM
 from time import ctime
-from test import WIDTH
 from utils import *
 
 
@@ -29,8 +31,6 @@ class qInfo:
     kind = None
     data = None
 
-q = qInfo.queue()
-
 def deleteFile(tokens) -> None:
     path = tokens[1]
     path = "client_dir/" + path
@@ -38,6 +38,27 @@ def deleteFile(tokens) -> None:
         os.remove(path)
     except FileNotFoundError:
         raise #this lets the original menu function handle the error, but it breaks when called from sanitizeInput
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def sanitizeInput() -> str:
     raw = input()
@@ -89,6 +110,19 @@ def sanitizeInput() -> str:
         return raw
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 def parse_args() -> argparse.Namespace:
     """Simple function that parses command-line arguments. Currently supports args
        for hostname and port number.
@@ -100,6 +134,22 @@ def parse_args() -> argparse.Namespace:
     args.add_argument("-p", "--port", type=int, default=8080)
     args.add_argument("-n", "--host", type=str, default="localhost")
     return args.parse_args()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #detect unsupported files and give warning?
 def upload(conn: socket, filename: str) -> None:
@@ -145,6 +195,23 @@ def upload(conn: socket, filename: str) -> None:
             #send_msg(conn, dumps(message))
             print("TypeError")
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def downloadReq(conn: socket, filename: str) -> None:
     """Sends a basic download request with a filename
     """
@@ -178,7 +245,14 @@ def sender(conn: socket, home_dir: str) -> None:
             #so the thread doesn't seem to be getting its task.
             #that i believe is happening is that the queue manager is correctly putting the task in the queue,
             #but the thread is at a point where it's waiting for user input.
-            #so it isn't actively 
+            #so it isn't able to check the queue.
+
+
+            #i think what i'll do to fix this is set a timer.
+            #on each calling of sender, a timer will be set in which the thread does not except continuously check the queue.
+            #i don't want this timer to be too long, so it can accept user input.
+            #but a server doesn't need to be able to accept user input, does it?
+
             if task.qsize() > 0:
                 print("I've recieved a task!")
 
@@ -239,10 +313,126 @@ def sender(conn: socket, home_dir: str) -> None:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+def serverSender(conn: socket, home_dir: str, q = None, id = None) -> None:
+    #the server doesn't actually need to recieve user input, it just has to respond to an incoming message.
+    #i don't think the server should ever need to send a message except for the download situation
+    #so i think this function will be continuously checking the queue.
+    print("my id is " + str(id))
+    print("uhhhhhhh hellooooooooo")
+    while True:
+        if q is not None:
+            if q.qsize() > 0:
+
+                req = q.get()
+                kind = req.kind
+                reqid = req.id
+                data = req.data
+                print("I received a req " + kind)
+                print("the data is " + data)
+                print("the id is " + str(reqid) + " and my id is " + str(id))
+
+                
+                #lock = threading.RLock
+                #con = threading.Condition(lock)
+                lock = threading.Lock()
+                lock.acquire()
+                if reqid == id:
+                    q.put(req)
+                    #threading.Condition.wait(lock)
+                    #con.wait()
+                    #lock = threading.Lock
+                    lock.acquire()
+                else:
+                    
+
+                #if the request's id matches the current ID, just put it back in the queue.
+                #only do anything if it came from the other thread.
+
+
+                #kind should ALWAYS be defined.
+                #ie the only things that should ever be pushed to the queue are qInfo objects.
+                    if kind == "request":
+                        message = {
+                            PACKET_HEADER: ":REQUEST:",
+                            PACKET_PAYLOAD: data
+                        }
+                        if message:
+                            send_msg(conn, pickle.dumps(message))
+                            #release()
+
+                    elif kind == "response":
+                        message = {
+                            PACKET_HEADER: ":RESPONSE:", #this originally said REQUEST
+                            PACKET_PAYLOAD: data#[PACKET_PAYLOAD]
+                        }
+                        if message:
+                            send_msg(conn, pickle.dumps(message))
+                            print(PACKET_PAYLOAD)
+                            #release()
+                    #threading.notify_all()
+                    #con.notify_all()
+                    lock.release()
+                """
+        try:
+
+            #message = sanitizeInput()
+            try:
+                command = message.split()[0]
+            except AttributeError:
+                pass
+            if command == ":UPLOAD:":
+                filename = message.split()[1]
+                upload(conn, f"{home_dir}\{filename}")
+            elif command == ":DOWNLOAD:":
+                filename = message.split()[1]
+                downloadReq(conn, filename)
+            else:
+                message = {
+                    PACKET_HEADER: ":MESSAGE:",
+                    PACKET_PAYLOAD: message
+                }
+                if message:
+                    send_msg(conn, pickle.dumps(message))
+        except KeyboardInterrupt:
+            conn.close()
+            raise"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #whichever function calls this must pass q.
 #potential other parameters: q = None, conn = None, id = None
-def handle_received_message(message: dict, home_dir: str) -> None:
-    
+def handle_received_message(message: dict, home_dir: str, q = None, conn = None, id = None) -> None:
+    #in the server, this will call sender to respond appropriately.
+    #"call" sender via the queue 
+
 
     """Function that takes a message and then executes the appropriate actions to
        do the proper functionality in response.
@@ -254,12 +444,13 @@ def handle_received_message(message: dict, home_dir: str) -> None:
     if message is not None:
         #filehead = message[PACKET_HEADER]
         #print(f"[{ctime()}] Message header '{filehead}' received!") #debug
-        if message[PACKET_HEADER] == ":UPLOAD:":
+        if message[PACKET_HEADER] == ":UPLOAD:": #client should never recieve one of these, only the server can recieve uploads.
             # (1) Get just the filename without the prefacing path.
             # (2) Get the PIL image object.
             # (3) Save the image to the device's directory.
             filename = message[PACKET_PAYLOAD]["filename"].split(os.sep)[-1]
 
+            #this needs to be tweaked to work for any arbitrary file.
             with open(f"{home_dir}\{filename}") as file:
                 file.write(message[PACKET_PAYLOAD]["img"])
 
@@ -277,7 +468,7 @@ def handle_received_message(message: dict, home_dir: str) -> None:
             """
             print(f"[{ctime()}] Saved file '{filename}' to your directory!")
 
-        elif message[PACKET_HEADER] == ":DOWNLOAD:":
+        elif message[PACKET_HEADER] == ":DOWNLOAD:": #the client should only ever be sending this to the server.
             filename = message[PACKET_PAYLOAD]["filename"].split(os.sep)[-1]
             fileSent = bool(0)
 
@@ -289,8 +480,19 @@ def handle_received_message(message: dict, home_dir: str) -> None:
                 print(f"Sending '{filename}'...")
                 #Todo: Actually send file
                 fileSent = bool(1)
-            else:
+            else: #if the file doesn't exist on the server, this is one of the cases in which the server should send a message
+                #it will call serversender() in the other thread?
+                #oh so maybe it should just push the info to the queue, (which will be constantly checked in serversender)
+                #and then it'll know to send.
                 print(f"File not found on server, reaching out to client two...")
+
+                info = qInfo()
+                info.id = id
+                info.kind = "request"
+                info.data = filename
+
+                q.put(info)
+
                 """
                 #reach out to client two:
                 #push "request" to the queue along with the message. (there may be a way to work this wihtout an initial queue message, but not gonna mess with that rn.)
@@ -321,21 +523,85 @@ def handle_received_message(message: dict, home_dir: str) -> None:
             #client should reply with a response, detailing whether or not it contains the file.
             #this could possibly just be done with DOWNLOAD.
             print("i've recieved a request")
+            #check whether the requested file exists on the client.
+            #if it does, send it to the server with a :RESPONSE: header
+            #if not, still reply with the :RESPONSE: header, but include no data (possibly specifically setting the data to None?)
+            filename = message[PACKET_PAYLOAD]
+            if os.path.exists(f"{home_dir}\{filename}"):
+                print("I have this file!")
+
+                #todo: fix this
+                #upload won't know how to make sure to tag it with a :RESPONSE: header
+                upload(conn, f"{home_dir}\{filename}")
+            else:
+                print("I don't have this file.")
+                #send message with response header with empty data
+                message = {
+                        PACKET_HEADER: ":RESPONSE:",
+                        PACKET_PAYLOAD: ":none:"
+                    }
+                if message:
+                    send_msg(conn, pickle.dumps(message))
+                
+
 
             pass
 
         elif message[PACKET_HEADER] == ":RESPONSE:":
             #server should just push "response" and the message to the queue.
+            if q is not None: 
+                print("My client has told me whether or not it has the file!")
+
+
+
+
+                info = qInfo()
+                info.id = id
+                info.kind = "response"
+                info.data = message[PACKET_PAYLOAD]
+
+
+                print(info.data)
+                q.put(info)
             #client should process the message: if there is a file, save it. if not, say that it couldn't be found.
-            pass
+            #this will also result in a queue push resulting in action in the other thread's serversender.
+            else:
+                print("here's what the client got:")
+                print(message[PACKET_PAYLOAD])
+                data = message[PACKET_PAYLOAD]
+
+                if data == ":none:":
+                    print("The other client didn't have the file you requested!")
+                else:
+                    #todo: save the file
+                    pass
 
         else:
             print(f"{message[PACKET_PAYLOAD]}")
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #though the task queue is not used here, it must be included so that it can be passed to the function where it IS used.
 #it might not actually be needed here? i'll look into it.
 #potential other parameters: q = None, id = None, task = None
-def receiver(conn: socket, home_dir: str) -> None:
+def receiver(conn: socket, home_dir: str, q = None, id = None) -> None:
+    print("my id is " + str(id))
     """
     if q is not None: #this ensures that only the server tries to access a queue (it'll break if client tries)
             print(q.qsize())
@@ -361,7 +627,7 @@ def receiver(conn: socket, home_dir: str) -> None:
             received_msg = recv_msg(conn)
             received_msg = pickle.loads(received_msg)
             # potentially with q, conn, id
-            handle_received_message(received_msg, home_dir)
+            handle_received_message(received_msg, home_dir, q, conn, id)
         except KeyboardInterrupt:
             conn.close()
 
