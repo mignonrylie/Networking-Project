@@ -172,9 +172,13 @@ def upload(conn: socket, filename: str) -> None:
         }
     except UnidentifiedImageError:
         try:
-            txt = open(filename)
+            txt = open(filename, "r") #open the text file in read-only mode
             message = {
-                PACKET_HEADER: ":"
+                PACKET_HEADER: ":UPLOAD:",
+                PACKET_PAYLOAD: {
+                    "filename": filename,
+                    "txt": txt
+                }
             }
         except:
             pass
@@ -283,6 +287,7 @@ def sender(conn: socket, home_dir: str) -> None:
                 pass
             if command == ":UPLOAD:":
                 filename = message.split()[1]
+                print(filename)
                 upload(conn, f"{home_dir}\{filename}")
             elif command == ":DOWNLOAD:":
                 filename = message.split()[1]
@@ -457,9 +462,11 @@ def handle_received_message(message: dict, home_dir: str, q = None, conn = None,
                 
             except KeyError:
                 #try:
-                audio, rate = message[PACKET_PAYLOAD]["audio"]
-                scipy.io.wavfile.write(filename, numpy.array(rate), numpy.array(audio))
-                
+                txt = message[PACKET_PAYLOAD]["txt"]
+                content = txt.read()
+                out = open(filename, "w+")
+                out.write(content)
+                out.close()
                 #except:
             
             print(f"[{ctime()}] Saved file '{filename}' to your directory!")
@@ -474,7 +481,15 @@ def handle_received_message(message: dict, home_dir: str, q = None, conn = None,
             #If file is on directory, send to Client 1, if not, check with Client 2
             if (fileOnDir == True):
                 print(f"Sending '{filename}'...")
-                #Todo: Actually send file
+                img = Image.open(f"{home_dir}\{filename}")
+                message = {
+                    PACKET_HEADER: ":RESPONSE:",
+                    PACKET_PAYLOAD: {
+                        "filename": filename,
+                        "img": img
+                    }
+                }
+                send_msg(conn, pickle.dumps(message))
                 fileSent = bool(1)
             else: #if the file doesn't exist on the server, this is one of the cases in which the server should send a message
                 #it will call serversender() in the other thread?
@@ -579,11 +594,10 @@ def handle_received_message(message: dict, home_dir: str, q = None, conn = None,
                 if data == ":none:":
                     print("The other client didn't have the file you requested!")
                 else:
+                    #try?
                     image = message[PACKET_PAYLOAD]["img"]
                     filename = message[PACKET_PAYLOAD]["filename"]
                     image.save(f"{home_dir}\{filename}")
-                    #todo: save the file
-                    pass
 
         else:
             print(f"{message[PACKET_PAYLOAD]}")
