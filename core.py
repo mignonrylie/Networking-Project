@@ -161,8 +161,8 @@ def upload(conn: socket, filename: str) -> None:
     """
     
     try:
-        #img = Image.open(filename)
-        img = open(filename, 'wb')
+        img = Image.open(filename)
+        #img = open(filename, 'wb')
         message = {
             PACKET_HEADER: ":UPLOAD:",
             PACKET_PAYLOAD: {
@@ -451,13 +451,13 @@ def handle_received_message(message: dict, home_dir: str, q = None, conn = None,
             filename = message[PACKET_PAYLOAD]["filename"].split(os.sep)[-1]
 
             #this needs to be tweaked to work for any arbitrary file.
-            with open(f"{home_dir}\{filename}") as file:
-                file.write(message[PACKET_PAYLOAD]["img"])
+            #with open(f"{home_dir}\{filename}") as file:
+            #    file.write(message[PACKET_PAYLOAD]["img"])
 
-            """
+            
             try:
                 image = message[PACKET_PAYLOAD]["img"]
-                #image.save(f"{home_dir}\{filename}")
+                image.save(f"{home_dir}\{filename}")
                 
             except KeyError:
                 #try:
@@ -465,7 +465,7 @@ def handle_received_message(message: dict, home_dir: str, q = None, conn = None,
                 scipy.io.wavfile.write(filename, numpy.array(rate), numpy.array(audio))
                 
                 #except:
-            """
+            
             print(f"[{ctime()}] Saved file '{filename}' to your directory!")
 
         elif message[PACKET_HEADER] == ":DOWNLOAD:": #the client should only ever be sending this to the server.
